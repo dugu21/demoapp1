@@ -5,222 +5,159 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>영주 선비숨결 스탬프 투어</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;700;900&display=swap" rel="stylesheet">
-    
     <script src="https://unpkg.com/html5-qrcode"></script>
-
     <style>
         :root { --forest: #1B3A2A; --amber: #E8B84B; --cream: #F7F2E8; --gold: #C9972A; --warm: #8B7355; }
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        body, html {
-            width: 100%; height: 100dvh;
-            overflow: hidden;
-            background-color: #000;
-            font-family: 'Noto Sans KR', sans-serif;
-        }
+        body, html { width: 100%; height: 100dvh; overflow: hidden; background-color: #000; font-family: 'Noto Sans KR', sans-serif; }
+        .app { width: 100%; height: 100%; position: relative; }
+        .page { position: absolute; inset: 0; display: none; flex-direction: column; z-index: 1; }
+        .page.active { display: flex; }
 
-        .app { width: 100%; height: 100dvh; position: relative; }
+        /* --- 인트로 --- */
+        #page-slider { background: #000; cursor: pointer; z-index: 10; }
+        .bg-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 
-        /* 페이지 기본 상태: 보이지 않고 클릭도 안 됨 */
-        .page { 
-            position: absolute; 
-            inset: 0; 
-            display: flex; 
-            flex-direction: column; 
-            opacity: 0; 
-            pointer-events: none; 
-            transition: opacity 0.3s;
-            z-index: 1;
-        }
-
-        /* 활성화된 페이지: 보이고 클릭 가능 */
-        .page.active { 
-            opacity: 1; 
-            pointer-events: auto; 
-            z-index: 10; 
-        }
-
-        /* 1번 페이지 특수 설정 */
-        #page-slider { 
-            background: #000; 
-            cursor: pointer;
-        }
-
-        /* 배경 영상 */
-        .bg-video { 
-            position: absolute; 
-            inset: 0; 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-            z-index: 0; 
-        }
-
-        /* 애니메이션 */
-        @keyframes pulse { 0%{opacity:0.6;} 50%{opacity:1;} 100%{opacity:0.6;} }
-        .pulse { animation: pulse 2s infinite; }
-
-        /* --- 등록 페이지 --- */
-        #page-auth .header {
-            position: relative; z-index: 10;
-            background: linear-gradient(180deg, rgba(27,58,42,0.92) 0%, rgba(27,58,42,0.5) 100%);
-            padding: max(50px, calc(env(safe-area-inset-top, 20px) + 20px)) 20px 16px; text-align: center;
-        }
-        #page-auth .header h2 { font-family: 'Noto Serif KR', serif; font-size: 22px; color: var(--amber); letter-spacing: 3px; }
-        
-        .form-panel {
+        /* --- 등록 --- */
+        #page-auth .form-panel {
             position: absolute; bottom: 0; left: 0; right: 0; z-index: 11;
-            padding: 20px 20px max(44px, env(safe-area-inset-bottom, 20px));
-            background: rgba(247, 242, 232, 0.85); backdrop-filter: blur(10px);
-            border-radius: 30px 30px 0 0;
+            padding: 24px 24px max(44px, env(safe-area-inset-bottom));
+            background: rgba(247, 242, 232, 0.95); backdrop-filter: blur(10px);
+            border-radius: 32px 32px 0 0;
         }
-        .form-panel input {
-            display: block; width: 100%; padding: 16px 18px; margin-bottom: 10px; border-radius: 12px;
-            border: 1px solid #ccc; background: white; font-size: 16px;
-        }
-        .form-panel button {
-            width: 100%; padding: 18px; border-radius: 14px; border: none;
-            background: var(--forest); color: var(--amber); font-weight: 900; font-size: 18px;
-        }
-        .form-panel button:disabled { background: #ccc; color: #999; }
 
-        /* --- 스탬프 맵 --- */
-        #page-stamp { background: #f0f4f7; }
-        .stamp-header { padding: max(50px, env(safe-area-inset-top)) 20px 10px; }
-        .stamp-status-bar { margin: 0 20px 15px; background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .gauge-track { height: 10px; background: #eee; border-radius: 5px; overflow: hidden; margin-top: 8px; }
-        .gauge-fill { height: 100%; background: var(--amber); transition: width 0.5s; }
+        /* --- 스탬프 맵 디자인 --- */
+        #page-stamp { background: linear-gradient(180deg, #e8f6fb 0%, #d0edf7 40%, #d8f0e8 100%); }
+        .stamp-header { padding: max(50px, env(safe-area-inset-top)) 20px 10px; position: relative; z-index: 5; }
+        .stamp-status-bar { margin: 0 16px 15px; background: white; padding: 15px; border-radius: 18px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); position: relative; z-index: 5; }
+        .gauge-track { height: 12px; background: #e0eef5; border-radius: 10px; overflow: hidden; margin-top: 8px; }
+        .gauge-fill { height: 100%; background: linear-gradient(90deg, #4DC95A, #2aaa48); transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+        .stamp-map-scroll { flex: 1; overflow-y: auto; padding: 20px; position: relative; }
+        .stamp-map { position: relative; width: 100%; min-height: 800px; }
+        .map-path-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
         
-        .stamp-map-scroll { flex: 1; overflow-y: auto; padding: 10px 20px 40px; position: relative; }
-        .stamp-card { background: white; border-radius: 20px; padding: 15px; margin-bottom: 20px; text-align: center; border: 2px solid transparent; }
-        .stamp-card.done { border-color: var(--amber); background: #fffcf5; }
-        .stamp-btn { width: 100%; padding: 10px; border-radius: 10px; border: none; background: #eee; font-weight: bold; margin-top: 10px; }
-        .stamp-card.done .stamp-btn { background: var(--amber); color: white; }
+        .stamp-row { display: flex; position: relative; z-index: 2; margin-bottom: 50px; width: 100%; }
+        .stamp-row.left { justify-content: flex-start; }
+        .stamp-row.right { justify-content: flex-end; }
+
+        .stamp-card { width: 70%; background: white; border-radius: 24px; border: 3px solid #a8d8ee; padding: 12px; transition: all 0.3s; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+        .stamp-card.done { border-color: var(--amber); background: #fffdf5; transform: scale(1.02); }
+        .stamp-img-box { width: 100%; aspect-ratio: 4/3; border-radius: 16px; overflow: hidden; margin-bottom: 10px; background: #eee; }
+        .stamp-img-box img { width: 100%; height: 100%; object-fit: cover; }
+        .stamp-btn { width: 100%; padding: 12px; border-radius: 12px; border: none; background: #3BB8D8; color: white; font-weight: 800; font-size: 14px; }
+        .stamp-card.done .stamp-btn { background: linear-gradient(135deg, var(--amber), var(--gold)); }
 
         /* --- QR 모달 --- */
-        #qr-modal { 
-            display: none; position: fixed; inset: 0; z-index: 1000; background: #000; 
-            flex-direction: column; justify-content: center; 
-        }
-        #reader { width: 100%; max-width: 400px; margin: 0 auto; }
-
-        /* --- 직원 확인 모달 --- */
-        .modal-overlay { 
-            display: none; position: fixed; inset: 0; z-index: 2000; 
-            background: rgba(0,0,0,0.8); align-items: center; justify-content: center; 
-        }
-        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 80%; text-align: center; }
+        #qr-modal { display: none; position: fixed; inset: 0; z-index: 1000; background: #000; flex-direction: column; }
+        #reader { width: 100%; flex: 1; }
+        .staff-modal-overlay { display: none; position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; }
+        
+        @keyframes dashAnim { to { stroke-dashoffset: -20; } }
+        .pulse { animation: pulse 2s infinite; }
     </style>
 </head>
 <body>
 
 <div class="app">
     <div class="page active" id="page-slider" onclick="goTo('page-auth')">
-        <video autoplay muted loop playsinline class="bg-video">
-            <source src="video_8229b9a3-678e-4192-a736-c757917fe6ca.mp4" type="video/mp4">
-        </video>
-        <div style="position:relative; z-index:5; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; background:rgba(0,0,0,0.2);">
-            <h1 style="font-family:'Noto Serif KR'; font-size:32px; text-align:center;">영주 <span style="color:var(--amber)">선비숨결</span><br>스탬프 투어</h1>
-            <p class="pulse" style="margin-top:40px; border:1px solid white; padding:10px 25px; border-radius:25px;">화면을 터치하여 시작</p>
+        <video autoplay muted loop playsinline class="bg-video"><source src="video_8229b9a3-678e-4192-a736-c757917fe6ca.mp4" type="video/mp4"></video>
+        <div style="position:relative; z-index:10; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; background:rgba(0,0,0,0.3);">
+            <h1 style="font-family:'Noto Serif KR'; font-size:32px; text-align:center; font-weight:900;">영주 <span style="color:var(--amber)">선비숨결</span><br>스탬프 투어</h1>
+            <p class="pulse" style="margin-top:40px; border:1px solid white; padding:10px 25px; border-radius:30px;">터치하여 시작하기</p>
         </div>
     </div>
 
     <div class="page" id="page-auth">
         <video autoplay muted loop playsinline class="bg-video"><source src="video_8229b9a3-678e-4192-a736-c757917fe6ca.mp4" type="video/mp4"></video>
-        <div class="header"><h2>여행자 등록</h2></div>
         <div class="form-panel">
-            <input type="text" id="userName" placeholder="성함">
-            <input type="tel" id="userPhone" placeholder="전화번호">
-            <div style="margin: 10px 0; font-size: 12px; display: flex; align-items: center; gap: 8px;">
-                <input type="checkbox" id="privacyCheck" style="width:20px; margin:0;" onchange="document.getElementById('startBtn').disabled = !this.checked">
-                <span>개인정보 수집 동의 (필수)</span>
+            <h2 style="margin-bottom:15px; font-family:'Noto Serif KR'; color:var(--forest);">여행자 등록</h2>
+            <input type="text" id="userName" placeholder="성함" style="width:100%; padding:15px; margin-bottom:10px; border-radius:12px; border:1px solid #ddd;">
+            <input type="tel" id="userPhone" placeholder="전화번호" style="width:100%; padding:15px; margin-bottom:15px; border-radius:12px; border:1px solid #ddd;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px; font-size:13px;">
+                <input type="checkbox" id="privacyCheck" onchange="document.getElementById('startBtn').disabled = !this.checked">
+                <label for="privacyCheck">개인정보 수집 동의 (필수)</label>
             </div>
-            <button id="startBtn" onclick="saveUser()" disabled>여정 시작하기</button>
+            <button id="startBtn" onclick="saveUser()" disabled style="width:100%; padding:18px; border-radius:15px; border:none; background:var(--forest); color:var(--amber); font-weight:900;">여정 시작하기</button>
         </div>
     </div>
 
     <div class="page" id="page-stamp">
         <div class="stamp-header">
-            <h1 style="font-size:24px;">선비숨결 <span style="color:var(--amber)">Stamp Tour</span></h1>
+            <h1 style="font-size:26px; font-weight:900;">선비숨결 <span style="color:#4DC95A;">Stamp Tour</span></h1>
         </div>
         <div class="stamp-status-bar">
-            <div style="display:flex; justify-content:space-between; font-weight:bold;">
-                <span>내 스탬프</span>
-                <span id="stampCount" style="color:var(--amber);">0 / 5</span>
+            <div style="display:flex; justify-content:space-between; font-weight:900;">
+                <span>스탬프 획득</span>
+                <span id="stampCount" style="color:#2aaa48;">0 / 5</span>
             </div>
             <div class="gauge-track"><div class="gauge-fill" id="gaugeFill" style="width:0%"></div></div>
         </div>
-        
         <div class="stamp-map-scroll">
-            <div class="stamp-card" id="card1" onclick="stampSite(1)">
-                <h3>1. 소수서원</h3>
-                <button class="stamp-btn" id="badge1">미인증</button>
+            <div class="stamp-map" id="stampMap">
+                <svg class="map-path-svg" id="pathSvg"></svg>
+                <div class="stamp-row left"><div class="stamp-card" id="card1" onclick="stampSite(1)"><div class="stamp-img-box"><img src="sosu1.jpeg"></div><h3>1. 소수서원</h3><button class="stamp-btn" id="badge1">인증하기</button></div></div>
+                <div class="stamp-row right"><div class="stamp-card" id="card2" onclick="stampSite(2)"><div class="stamp-img-box"><img src="sosu2.jpeg"></div><h3>2. 소수박물관</h3><button class="stamp-btn" id="badge2">인증하기</button></div></div>
+                <div class="stamp-row left"><div class="stamp-card" id="card3" onclick="stampSite(3)"><div class="stamp-img-box"><img src="sosu3.jpeg"></div><h3>3. 선비촌</h3><button class="stamp-btn" id="badge3">인증하기</button></div></div>
+                <div class="stamp-row right"><div class="stamp-card" id="card4" onclick="stampSite(4)"><div class="stamp-img-box"><img src="sosu4.jpeg"></div><h3>4. 선비문화수련원</h3><button class="stamp-btn" id="badge4">인증하기</button></div></div>
+                <div class="stamp-row left"><div class="stamp-card" id="card5" onclick="stampSite(5)"><div class="stamp-img-box"><img src="sosu5.jpeg"></div><h3>5. 선비세상</h3><button class="stamp-btn" id="badge5">인증하기</button></div></div>
+                <button id="completeBtn" onclick="goTo('page-complete')" style="display:none; width:100%; padding:20px; background:var(--gold); color:white; border-radius:15px; border:none; font-weight:900; margin-top:20px;">🏆 완주 인증서 보기</button>
             </div>
-            <div class="stamp-card" id="card2" onclick="stampSite(2)">
-                <h3>2. 소수박물관</h3>
-                <button class="stamp-btn" id="badge2">미인증</button>
-            </div>
-            <div class="stamp-card" id="card3" onclick="stampSite(3)">
-                <h3>3. 선비촌</h3>
-                <button class="stamp-btn" id="badge3">미인증</button>
-            </div>
-            <div class="stamp-card" id="card4" onclick="stampSite(4)">
-                <h3>4. 선비문화수련원</h3>
-                <button class="stamp-btn" id="badge4">미인증</button>
-            </div>
-            <div class="stamp-card" id="card5" onclick="stampSite(5)">
-                <h3>5. 선비세상</h3>
-                <button class="stamp-btn" id="badge5">미인증</button>
-            </div>
-            
-            <button id="finishBtn" onclick="goTo('page-complete')" style="display:none; width:100%; padding:20px; background:var(--gold); border:none; border-radius:15px; color:white; font-weight:bold;">완주 인증서 보기</button>
         </div>
     </div>
 
-    <div class="page" id="page-complete" style="background:var(--forest); color:white; justify-content:center; align-items:center; text-align:center;">
-        <h2 style="font-family:'Noto Serif KR'; color:var(--amber);">축하합니다!</h2>
-        <p>선비숨결 투어를 완주하셨습니다.</p>
-        <div id="certArea" style="margin:30px; padding:20px; border:2px solid var(--amber); border-radius:15px;">
-            <p id="dispName" style="font-size:20px; font-weight:bold;"></p>
-            <p id="dispDate"></p>
+    <div class="page" id="page-complete" style="background:var(--forest); color:white; text-align:center; justify-content:center;">
+        <h1 style="color:var(--amber); font-size:30px; margin-bottom:20px;">투어 완주!</h1>
+        <div style="margin:20px; padding:30px; border:2px solid var(--amber); border-radius:20px;">
+            <p id="certUser" style="font-size:22px; font-weight:bold;"></p>
+            <p id="certDate" style="margin-top:10px; opacity:0.7;"></p>
         </div>
-        <button onclick="alert('기념품 수령처에서 직원을 호출해주세요.')" style="padding:15px 30px; background:var(--amber); border:none; border-radius:30px; font-weight:bold;">기념품 수령하기</button>
+        <button onclick="document.getElementById('staffModal').style.display='flex'" style="padding:15px 40px; background:var(--amber); border:none; border-radius:30px; font-weight:900;">기념품 수령 (직원확인)</button>
     </div>
 
     <div id="qr-modal">
-        <div style="color:white; text-align:center; padding:20px;">
-            <h3>QR 인증</h3>
-            <p>장소의 QR코드를 인식해주세요</p>
+        <div style="padding:30px; color:white; text-align:center;">
+            <h2 id="qrTargetName" style="color:var(--amber);">QR 스캔</h2>
         </div>
         <div id="reader"></div>
-        <button onclick="stopScanner()" style="margin:20px; padding:10px; color:white; background:transparent; border:1px solid white;">닫기</button>
+        <div style="padding:30px; text-align:center;">
+            <button onclick="stopScanner()" style="padding:12px 40px; border-radius:25px; border:1px solid white; background:transparent; color:white;">취소</button>
+        </div>
     </div>
 
+    <div class="staff-modal-overlay" id="staffModal">
+        <div style="background:white; padding:30px; border-radius:20px; width:80%; text-align:center;">
+            <h3 style="margin-bottom:15px;">관리자 확인</h3>
+            <input type="password" id="staffCode" placeholder="코드 입력" style="width:100%; padding:15px; text-align:center; font-size:18px; margin-bottom:15px;">
+            <button onclick="if(document.getElementById('staffCode').value==='2026'){alert('확인되었습니다!'); document.getElementById('staffModal').style.display='none';}else{alert('오류!');}" style="width:100%; padding:15px; background:var(--forest); color:white; border-radius:12px; border:none;">확인</button>
+        </div>
+    </div>
 </div>
 
 <script>
     let stamps = JSON.parse(localStorage.getItem('seonbi_stamps') || '[]');
     let html5QrCode = null;
-    let currentSiteNum = null;
+    let currentSite = null;
 
-    // 페이지 이동 함수 (수정됨: pointer-events 제어)
+    // 반영해주신 이미지 기반 인증 코드 매핑
+    const qrCodes = { 1: "1212", 2: "2323", 3: "3434", 4: "4545", 5: "5656" };
+    const siteNames = ["", "소수서원", "소수박물관", "선비촌", "선비문화수련원", "선비세상"];
+
     function goTo(id) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        const target = document.getElementById(id);
-        target.classList.add('active');
-        
-        if (id === 'page-stamp') loadStamps();
+        document.getElementById(id).classList.add('active');
+        if (id === 'page-stamp') { loadStamps(); setTimeout(drawPaths, 300); }
         if (id === 'page-complete') {
             const user = JSON.parse(localStorage.getItem('seonbi_user') || '{"name":"선비"}');
-            document.getElementById('dispName').textContent = user.name + " 선비님";
-            document.getElementById('dispDate').textContent = new Date().toLocaleDateString();
+            document.getElementById('certUser').textContent = user.name + " 선비님";
+            document.getElementById('certDate').textContent = new Date().toLocaleDateString();
         }
     }
 
     function saveUser() {
-        const name = document.getElementById('userName').value;
-        const phone = document.getElementById('userPhone').value;
-        if(!name || !phone) return alert("정보를 모두 입력해주세요.");
+        const name = document.getElementById('userName').value.trim();
+        const phone = document.getElementById('userPhone').value.trim();
+        if(!name || !phone) return alert("정보를 입력해주세요.");
         localStorage.setItem('seonbi_user', JSON.stringify({name, phone}));
         goTo('page-stamp');
     }
@@ -228,57 +165,75 @@
     function loadStamps() {
         stamps = JSON.parse(localStorage.getItem('seonbi_stamps') || '[]');
         let count = 0;
-        for(let i=1; i<=5; i++) {
-            const isDone = stamps.includes(i);
-            if(isDone) count++;
-            document.getElementById('card'+i).classList.toggle('done', isDone);
-            document.getElementById('badge'+i).textContent = isDone ? "인증 완료 ✓" : "미인증";
+        for(let i=1; i<=5; i++){
+            const done = stamps.includes(i);
+            if(done) count++;
+            document.getElementById('card'+i).classList.toggle('done', done);
+            document.getElementById('badge'+i).textContent = done ? "인증 완료 ✓" : "인증하기";
         }
         document.getElementById('stampCount').textContent = count + " / 5";
         document.getElementById('gaugeFill').style.width = (count/5*100) + "%";
-        if(count === 5) document.getElementById('finishBtn').style.display = 'block';
+        if(count === 5) document.getElementById('completeBtn').style.display = 'block';
     }
 
     function stampSite(n) {
         if(stamps.includes(n)) return;
-        currentSiteNum = n;
+        currentSite = n;
+        document.getElementById('qrTargetName').textContent = siteNames[n] + " 인증";
         startScanner();
     }
 
     function startScanner() {
         document.getElementById('qr-modal').style.display = 'flex';
         html5QrCode = new Html5Qrcode("reader");
-        html5QrCode.start(
-            { facingMode: "environment" }, 
-            { fps: 10, qrbox: 250 },
-            (decodedText) => {
-                if(decodedText === "seonbi_site_" + currentSiteNum) {
-                    stamps.push(currentSiteNum);
-                    localStorage.setItem('seonbi_stamps', JSON.stringify(stamps));
-                    alert("인증 성공!");
-                    stopScanner();
-                    loadStamps();
-                } else {
-                    alert("이 장소의 QR 코드가 아닙니다.");
-                }
+        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
+            if (decodedText.trim() === qrCodes[currentSite]) {
+                stamps.push(currentSite);
+                localStorage.setItem('seonbi_stamps', JSON.stringify(stamps));
+                alert("인증되었습니다! ✨");
+                stopScanner();
+                loadStamps();
+                drawPaths();
+            } else {
+                alert("장소에 맞는 코드가 아닙니다.");
             }
-        ).catch(err => {
-            alert("카메라 권한이 필요합니다.");
-            stopScanner();
-        });
+        }).catch(() => { alert("카메라를 사용할 수 없습니다."); stopScanner(); });
     }
 
     function stopScanner() {
         if(html5QrCode) {
-            html5QrCode.stop().then(() => {
-                document.getElementById('qr-modal').style.display = 'none';
-                html5QrCode = null;
-            });
-        } else {
-            document.getElementById('qr-modal').style.display = 'none';
+            html5QrCode.stop().then(() => { document.getElementById('qr-modal').style.display = 'none'; html5QrCode = null; });
+        } else { document.getElementById('qr-modal').style.display = 'none'; }
+    }
+
+    function drawPaths() {
+        const svg = document.getElementById('pathSvg');
+        const map = document.getElementById('stampMap');
+        if(!svg || !map) return;
+        svg.innerHTML = '';
+        svg.setAttribute('viewBox', `0 0 ${map.clientWidth} ${map.scrollHeight}`);
+        svg.style.height = map.scrollHeight + 'px';
+
+        const points = [1,2,3,4,5].map(i => {
+            const card = document.getElementById('card'+i);
+            const rect = card.getBoundingClientRect();
+            const parent = map.getBoundingClientRect();
+            return { x: rect.left - parent.left + rect.width/2, y: rect.top - parent.top + rect.height/2, done: stamps.includes(i) };
+        });
+
+        for(let i=0; i<points.length-1; i++) {
+            const p1 = points[i], p2 = points[i+1];
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const d = `M ${p1.x} ${p1.y} C ${p1.x} ${(p1.y+p2.y)/2}, ${p2.x} ${(p1.y+p2.y)/2}, ${p2.x} ${p2.y}`;
+            path.setAttribute('d', d);
+            path.setAttribute('stroke', p1.done && p2.done ? '#C9972A' : '#E8B84B');
+            path.setAttribute('stroke-width', '4');
+            path.setAttribute('stroke-dasharray', '8, 6');
+            path.setAttribute('fill', 'none');
+            path.style.animation = 'dashAnim 1s linear infinite';
+            svg.appendChild(path);
         }
     }
 </script>
-
 </body>
 </html>
